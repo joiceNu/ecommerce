@@ -42,7 +42,11 @@
     :db/valueType :db.type/bigdec
     :db/cardinality :db.cardinality/one
     :db/doc "O preço do produto com precisao monetária"
-    }])
+    }
+   {:db/ident :produto/palavra-chave
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/many}
+   ])
 
 (defn cria-schema [conn]
   (d/transact conn schema)
@@ -84,4 +88,33 @@
 (defn todos-os-produtos [db]
   (d/q '[:find (pull ?entidade [*])
          :where [?entidade :produto/nome]] db))
+
+(defn todos-os-produtos-por-preco [db preco-minimo-requisitado]
+  (d/q '[:find ?nome, ?preco
+         :in $, ?preco-minimo
+         :keys produto/nome, produto/preco
+         :where [?produto :produto/preco ?preco]
+         [(> ?preco ?preco-minimo)]
+         [?produto :produto/nome ?nome]
+         ]
+
+       db preco-minimo-requisitado))
+
+
+
+(defn todos-os-produtos-por-palavra-chave[db palavra-chave-buscada]
+  (d/q '[:find(pull ?produto[*])
+         :in $ ?palavra-chave
+         :where [?produto :produto/palavra-chave ?palavra-chave]]
+       db palavra-chave-buscada))
+
+; se temos 10 mil...se temos mil produtos com preco > 5000 e so 10 produtos com quantidade < 10
+;;[(> preco 5000)]        ; => 5000 datom
+;;[(< quantidade 10)]     ; => 10 datom
+
+; passar por 10 mil
+;;[(< quantidade 10)]     ; => 10 datom
+;;[(> preco 5000)]        ; => 10 datom
+;
+; em geral vamos deixar as condicoes da mais restritiva para a menos restritiva pois o plano de acao somos nos quem tomamos
 
